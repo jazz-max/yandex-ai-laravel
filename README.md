@@ -183,6 +183,14 @@ The skill provides full API reference, code examples, and knows all Yandex API g
 
 Example prompts that activate the skill:
 
+> Add YandexGPT text generation to my Laravel app with streaming support
+
+> Build a document recognition feature using Yandex Vision OCR for passports and driver licenses
+
+> Implement semantic search with Yandex Embeddings and cosine similarity
+
+> Set up function calling with Yandex AI Studio in my Laravel project
+
 > Подключи Yandex AI Studio к моему Laravel-проекту и сделай artisan-команду для генерации текста через YandexGPT
 
 > Добавь распознавание документов через Yandex Vision OCR с поддержкой паспортов и водительских удостоверений
