@@ -181,6 +181,14 @@ npx skills add jazz-max/yandex-ai-laravel-skill
 
 The skill provides full API reference, code examples, and knows all Yandex API gotchas.
 
+Example prompts that activate the skill:
+
+> Подключи Yandex AI Studio к моему Laravel-проекту и сделай artisan-команду для генерации текста через YandexGPT
+
+> Добавь распознавание документов через Yandex Vision OCR с поддержкой паспортов и водительских удостоверений
+
+> Реализуй семантический поиск по базе статей с помощью Yandex Embeddings
+
 ## License
 
 MIT
