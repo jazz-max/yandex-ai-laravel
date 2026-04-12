@@ -80,6 +80,7 @@ class ResponsesClient
         $body = $response->getBody();
         $buffer = '';
         $fullText = '';
+        $lastEvent = null;
 
         while (!$body->eof()) {
             $chunk = $body->read(8192);
@@ -88,12 +89,17 @@ class ResponsesClient
             while (($pos = strpos($buffer, "\n")) !== false) {
                 $line = substr($buffer, 0, $pos);
                 $buffer = substr($buffer, $pos + 1);
+                $line = trim($line);
 
-                if (!str_starts_with($line, 'data: ')) {
+                // Support both "data: {...}" and "data:{...}" (Yandex API omits the space)
+                if (!str_starts_with($line, 'data:')) {
                     continue;
                 }
 
-                $json = substr($line, 6);
+                $json = str_starts_with($line, 'data: ')
+                    ? substr($line, 6)
+                    : substr($line, 5);
+
                 if ($json === '[DONE]') {
                     break 2;
                 }
@@ -102,6 +108,8 @@ class ResponsesClient
                 if (!$event) {
                     continue;
                 }
+
+                $lastEvent = $event;
 
                 // Extract text deltas
                 $type = $event['type'] ?? '';
@@ -115,7 +123,7 @@ class ResponsesClient
 
         // Build a response object from accumulated data
         $result = Response::fromArray([
-            'id'     => $event['response']['id'] ?? '',
+            'id'     => $lastEvent['response']['id'] ?? '',
             'model'  => $params['model'],
             'status' => 'completed',
             'output' => [
@@ -125,7 +133,7 @@ class ResponsesClient
                     'role'    => 'assistant',
                 ],
             ],
-            'usage' => $event['response']['usage'] ?? [],
+            'usage' => $lastEvent['response']['usage'] ?? [],
         ]);
 
         if ($onComplete) {
