@@ -34,10 +34,11 @@ enum OcrModel: string
 
     /**
      * These models only support ru/en languages.
+     * Markdown and MathMarkdown also reject ['*'] wildcard.
      */
     public function hasLimitedLanguages(): bool
     {
-        return in_array($this, [self::Handwritten, self::Table]);
+        return in_array($this, [self::Handwritten, self::Table, self::Markdown, self::MathMarkdown]);
     }
 
     public function languages(): array
