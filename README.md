@@ -171,6 +171,16 @@ See [examples/](examples/) directory:
 - `embeddings.php` — semantic search
 - `background.php` — background tasks
 
+## Claude Code Skill
+
+If you use [Claude Code](https://claude.ai/code), install the companion skill for expert guidance on this SDK:
+
+```bash
+npx skills add jazz-max/yandex-ai-laravel-skill
+```
+
+The skill provides full API reference, code examples, and knows all Yandex API gotchas.
+
 ## License
 
 MIT
