@@ -181,7 +181,7 @@ See [examples/](examples/) directory:
 
 ## Claude Code Skill
 
-If you use [Claude Code](https://claude.ai/code), install the companion skill for expert guidance on this SDK:
+If you use [Claude Code](https://claude.ai/code), install the companion skill ([jazz-max/yandex-ai-laravel-skill](https://github.com/jazz-max/yandex-ai-laravel-skill)) for expert guidance on this SDK:
 
 ```bash
 npx skills add jazz-max/yandex-ai-laravel-skill
