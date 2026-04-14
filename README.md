@@ -120,12 +120,20 @@ $response = YandexAi::responses()->create([
 
 if ($response->hasFunctionCall()) {
     $call = $response->functionCall;
+
+    // Check if function call was extracted from text (fallback parser)
+    if ($response->isFallbackFunctionCall) {
+        // Model returned tool call as text — consider shortening tool descriptions
+    }
+
     // Execute function, then submit result:
     $final = YandexAi::responses()->submitToolOutput(
         $response->id, $call['id'], '{"temp": 15}'
     );
 }
 ```
+
+> **Note:** Yandex models sometimes return function calls as plain text instead of proper `function_call` items. The SDK includes a fallback parser that automatically extracts them. Check `$response->isFallbackFunctionCall` to detect this. Disable via `YANDEX_AI_FUNCTION_CALL_FALLBACK=false`.
 
 ## Known Gotchas
 

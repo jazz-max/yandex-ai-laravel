@@ -20,7 +20,9 @@ This document covers issues discovered during production use of Yandex AI Studio
 - Always include at least one property (use `_unused` dummy property)
 - Never use `new \stdClass()` for empty properties — PHP serializes it as `[]`
 - Always test with `curl` before deploying (see Testing section)
-- Add fallback: parse response text for `[tool_name]` patterns
+- The SDK includes a **fallback parser** (`FunctionCallFallbackParser`) that automatically detects function calls in text responses and extracts them. Enabled by default; disable via `YANDEX_AI_FUNCTION_CALL_FALLBACK=false`
+- `FunctionTool::make()` logs warnings when descriptions are too long or contain non-ASCII characters
+- Check `$response->isFallbackFunctionCall` to know if a function call was extracted from text (fallback) or returned properly by the API
 
 **Example - BAD:**
 ```php

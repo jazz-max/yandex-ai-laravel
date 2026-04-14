@@ -45,6 +45,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Function Call Fallback Parser
+    |--------------------------------------------------------------------------
+    | When true, the SDK attempts to parse function calls from text responses
+    | when the model returns tool calls as text instead of function_call items.
+    | This is a known issue with Yandex models when tool descriptions are
+    | too long, in Russian, or system prompts exceed ~250 chars.
+    */
+    'function_call_fallback' => (bool) env('YANDEX_AI_FUNCTION_CALL_FALLBACK', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Pricing (RUB per 1000 tokens)
     |--------------------------------------------------------------------------
     | IMPORTANT: Yandex prices are per 1000 tokens in RUB (not per 1M in USD).

@@ -53,23 +53,26 @@ class ResponsesClient
     public function create(array $params): Response
     {
         $params['model'] = $this->formatModel($params['model'] ?? config('yandex-ai.default_model'));
+        $toolNames = $this->extractToolNames($params['tools'] ?? []);
 
         $data = $this->request('POST', '/responses', $params);
 
-        return Response::fromArray($data);
+        return Response::fromArray($data, $toolNames);
     }
 
     /**
      * Send a request and stream the response.
      *
-     * @param array   $params   Request parameters
-     * @param Closure $onDelta  Called with each text delta: fn(string $delta)
-     * @param Closure|null $onComplete Called when streaming is complete: fn(Response $response)
+     * @param array        $params         Request parameters
+     * @param Closure      $onDelta        Called with each text delta: fn(string $delta)
+     * @param Closure|null $onComplete     Called when streaming is complete: fn(Response $response)
+     * @param Closure|null $onFunctionCall Called when a function call is received: fn(array $functionCall)
      */
-    public function stream(array $params, Closure $onDelta, ?Closure $onComplete = null): Response
+    public function stream(array $params, Closure $onDelta, ?Closure $onComplete = null, ?Closure $onFunctionCall = null): Response
     {
         $params['model']  = $this->formatModel($params['model'] ?? config('yandex-ai.default_model'));
         $params['stream'] = true;
+        $toolNames = $this->extractToolNames($params['tools'] ?? []);
 
         $response = $this->http->post("{$this->baseUrl}/responses", [
             'json'    => $params,
@@ -81,6 +84,11 @@ class ResponsesClient
         $buffer = '';
         $fullText = '';
         $lastEvent = null;
+
+        // Function call accumulators for streaming
+        $functionCallId = null;
+        $functionCallName = null;
+        $functionCallArgs = '';
 
         while (!$body->eof()) {
             $chunk = $body->read(8192);
@@ -111,30 +119,65 @@ class ResponsesClient
 
                 $lastEvent = $event;
 
-                // Extract text deltas
                 $type = $event['type'] ?? '';
+
+                // Extract text deltas
                 if ($type === 'response.output_text.delta') {
                     $delta = $event['delta'] ?? '';
                     $fullText .= $delta;
                     $onDelta($delta);
                 }
+
+                // Capture function call start
+                if ($type === 'response.output_item.added') {
+                    $item = $event['item'] ?? [];
+                    if (($item['type'] ?? '') === 'function_call') {
+                        $functionCallId = $item['call_id'] ?? $item['id'] ?? '';
+                        $functionCallName = $item['name'] ?? '';
+                    }
+                }
+
+                // Accumulate function call arguments
+                if ($type === 'response.function_call_arguments.delta') {
+                    $functionCallArgs .= $event['delta'] ?? '';
+                }
+
+                // Function call complete — notify callback
+                if ($type === 'response.function_call_arguments.done' && $onFunctionCall) {
+                    $onFunctionCall([
+                        'id'        => $functionCallId ?? '',
+                        'name'      => $functionCallName ?? '',
+                        'arguments' => json_decode($functionCallArgs ?: '{}', true) ?: [],
+                    ]);
+                }
             }
         }
 
-        // Build a response object from accumulated data
+        // Build output array from accumulated data
+        $output = [];
+        if ($functionCallName) {
+            $output[] = [
+                'type'      => 'function_call',
+                'call_id'   => $functionCallId,
+                'name'      => $functionCallName,
+                'arguments' => $functionCallArgs ?: '{}',
+            ];
+        }
+        if ($fullText !== '') {
+            $output[] = [
+                'type'    => 'message',
+                'content' => [['type' => 'output_text', 'text' => $fullText]],
+                'role'    => 'assistant',
+            ];
+        }
+
         $result = Response::fromArray([
             'id'     => $lastEvent['response']['id'] ?? '',
             'model'  => $params['model'],
             'status' => 'completed',
-            'output' => [
-                [
-                    'type'    => 'message',
-                    'content' => [['type' => 'output_text', 'text' => $fullText]],
-                    'role'    => 'assistant',
-                ],
-            ],
-            'usage' => $lastEvent['response']['usage'] ?? [],
-        ]);
+            'output' => $output,
+            'usage'  => $lastEvent['response']['usage'] ?? [],
+        ], $toolNames);
 
         if ($onComplete) {
             $onComplete($result);
@@ -237,6 +280,17 @@ class ResponsesClient
         $cost += ($cachedTokens / 1000) * $prices['prompt'] * 0.5;
 
         return round($cost, 6);
+    }
+
+    /**
+     * Extract tool names from the tools array for fallback parsing.
+     */
+    private function extractToolNames(array $tools): array
+    {
+        return array_values(array_filter(array_map(
+            fn(array $t) => $t['name'] ?? null,
+            $tools
+        )));
     }
 
     private function request(string $method, string $path, array $body = []): array
